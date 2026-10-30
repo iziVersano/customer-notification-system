@@ -1,0 +1,21 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+*.tfvars
+!example.tfvars
+
+# Lambda build output
+*.zip
+__pycache__/
+.venv/
+
+# AWS credentials — never commit
+*accessKeys*.csv
+*credentials*.csv
+.aws/
+
+# OS
+.DS_Store

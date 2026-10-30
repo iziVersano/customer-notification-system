@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#232f3e"/>
+    </marker>
+    <marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c7254e"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="640" fill="#ffffff"/>
+
+  <text x="40" y="48" font-size="26" font-weight="bold" fill="#232f3e">Customer Notification System — Option A (SNS → SQS → Lambda)</text>
+
+  <!-- AWS cloud / region -->
+  <rect x="250" y="80" width="910" height="520" rx="10" fill="none" stroke="#232f3e" stroke-width="2"/>
+  <text x="268" y="108" font-size="16" font-weight="bold" fill="#232f3e">AWS Cloud · eu-central-1 (Frankfurt) · account 272423022449</text>
+
+  <!-- App -->
+  <rect x="40" y="270" width="170" height="90" rx="10" fill="#f2f3f3" stroke="#545b64" stroke-width="2"/>
+  <text x="125" y="308" font-size="17" font-weight="bold" text-anchor="middle" fill="#232f3e">Application</text>
+  <text x="125" y="332" font-size="13" text-anchor="middle" fill="#545b64">(simulated: CLI / script)</text>
+
+  <!-- SNS -->
+  <rect x="300" y="260" width="200" height="110" rx="10" fill="#fce4ec" stroke="#e7157b" stroke-width="2"/>
+  <text x="400" y="300" font-size="17" font-weight="bold" text-anchor="middle" fill="#232f3e">Amazon SNS</text>
+  <text x="400" y="324" font-size="14" text-anchor="middle" fill="#232f3e">topic</text>
+  <text x="400" y="346" font-size="14" text-anchor="middle" fill="#232f3e">customer-events</text>
+
+  <!-- Email -->
+  <rect x="610" y="140" width="210" height="80" rx="10" fill="#fff4e5" stroke="#ff9900" stroke-width="2"/>
+  <text x="715" y="174" font-size="16" font-weight="bold" text-anchor="middle" fill="#232f3e">Email subscription</text>
+  <text x="715" y="198" font-size="13" text-anchor="middle" fill="#545b64">→ my inbox</text>
+
+  <!-- SQS -->
+  <rect x="610" y="280" width="210" height="80" rx="10" fill="#fce4ec" stroke="#e7157b" stroke-width="2"/>
+  <text x="715" y="314" font-size="16" font-weight="bold" text-anchor="middle" fill="#232f3e">Amazon SQS</text>
+  <text x="715" y="338" font-size="14" text-anchor="middle" fill="#232f3e">notifications</text>
+
+  <!-- Lambda -->
+  <rect x="910" y="280" width="210" height="80" rx="10" fill="#fff4e5" stroke="#ff9900" stroke-width="2"/>
+  <text x="1015" y="314" font-size="16" font-weight="bold" text-anchor="middle" fill="#232f3e">AWS Lambda</text>
+  <text x="1015" y="338" font-size="13" text-anchor="middle" fill="#545b64">notification processor</text>
+
+  <!-- DLQ -->
+  <rect x="610" y="440" width="210" height="80" rx="10" fill="#fdecec" stroke="#c7254e" stroke-width="2"/>
+  <text x="715" y="474" font-size="16" font-weight="bold" text-anchor="middle" fill="#232f3e">SQS dead-letter queue</text>
+  <text x="715" y="498" font-size="14" text-anchor="middle" fill="#232f3e">notifications-dlq</text>
+
+  <!-- CloudWatch -->
+  <rect x="910" y="440" width="210" height="80" rx="10" fill="#e8f5e9" stroke="#3f8624" stroke-width="2"/>
+  <text x="1015" y="474" font-size="16" font-weight="bold" text-anchor="middle" fill="#232f3e">Amazon CloudWatch</text>
+  <text x="1015" y="498" font-size="13" text-anchor="middle" fill="#545b64">logs + alarms</text>
+
+  <!-- arrows -->
+  <line x1="210" y1="315" x2="298" y2="315" stroke="#232f3e" stroke-width="2.5" marker-end="url(#a)"/>
+  <text x="254" y="300" font-size="13" text-anchor="middle" fill="#232f3e">publish</text>
+
+  <path d="M500 295 C 555 295, 555 180, 608 180" fill="none" stroke="#232f3e" stroke-width="2.5" marker-end="url(#a)"/>
+  <line x1="500" y1="320" x2="608" y2="320" stroke="#232f3e" stroke-width="2.5" marker-end="url(#a)"/>
+  <text x="565" y="262" font-size="13" fill="#232f3e">fan-out</text>
+
+  <line x1="820" y1="320" x2="908" y2="320" stroke="#232f3e" stroke-width="2.5" marker-end="url(#a)"/>
+  <text x="864" y="305" font-size="13" text-anchor="middle" fill="#232f3e">poll</text>
+
+  <line x1="715" y1="360" x2="715" y2="438" stroke="#c7254e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#r)"/>
+  <text x="725" y="404" font-size="13" fill="#c7254e">after 3 failed tries</text>
+
+  <line x1="1015" y1="360" x2="1015" y2="438" stroke="#232f3e" stroke-width="2.5" marker-end="url(#a)"/>
+  <text x="1025" y="404" font-size="13" fill="#232f3e">logs</text>
+
+  <line x1="820" y1="480" x2="908" y2="480" stroke="#232f3e" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#a)"/>
+  <text x="864" y="468" font-size="13" text-anchor="middle" fill="#232f3e">alarm</text>
+
+  <text x="268" y="580" font-size="13" fill="#545b64">Each service gets its own least-privilege IAM role · Everything is created and destroyed with Terraform</text>
+</svg>
