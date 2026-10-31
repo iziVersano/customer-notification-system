@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build Map</title>
+<style>
+:root {
+  --bg: #ffffff; --text: #26251f; --muted: #6b6a63; --line: #b4b2a9; --panel: #f7f6f2;
+  --dim-fill: #f1efe8; --dim-stroke: #888780;
+  --done-fill: #e1f5ee; --done-stroke: #0f6e56; --done-text: #085041;
+  --cur-fill: #faeeda; --cur-stroke: #ba7517; --cur-text: #633806;
+  --fail-fill: #faece7; --fail-stroke: #993c1d; --fail-text: #712b13;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1f1e1b; --text: #f1efe8; --muted: #b4b2a9; --line: #5f5e5a; --panel: #2c2c2a;
+    --dim-fill: #2c2c2a; --dim-stroke: #888780;
+    --done-fill: #085041; --done-stroke: #5dcaa5; --done-text: #e1f5ee;
+    --cur-fill: #633806; --cur-stroke: #ef9f27; --cur-text: #faeeda;
+    --fail-fill: #712b13; --fail-stroke: #f0997b; --fail-text: #faece7;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0 auto; max-width: 760px; padding: 16px; background: var(--bg); color: var(--text); font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+h1 { font-size: 20px; font-weight: 500; margin: 0 0 4px; }
+#progress { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+button { font: inherit; font-size: 14px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; }
+button[aria-pressed="true"] { background: var(--panel); color: var(--text); font-weight: 500; }
+#paths { display: flex; gap: 6px; margin-bottom: 8px; }
+svg { display: block; width: 100%; height: auto; }
+svg text { font-family: inherit; text-anchor: middle; dominant-baseline: central; }
+.title { font-size: 14px; font-weight: 500; }
+.sub { font-size: 12px; }
+.node { cursor: pointer; }
+.node rect { stroke-width: 1; }
+.node.dim { opacity: .5; }
+.node.dim rect { fill: var(--dim-fill); stroke: var(--dim-stroke); stroke-dasharray: 4 4; }
+.node.dim text { fill: var(--muted); }
+.node.done rect { fill: var(--done-fill); stroke: var(--done-stroke); }
+.node.done text { fill: var(--done-text); }
+.node.fail rect { fill: var(--fail-fill); stroke: var(--fail-stroke); }
+.node.fail text { fill: var(--fail-text); }
+.node.cur rect { fill: var(--cur-fill); stroke: var(--cur-stroke); stroke-width: 2; }
+.node.cur text { fill: var(--cur-text); }
+.node.sel rect { stroke-width: 2.5; }
+.node:focus-visible { outline: 2px solid var(--cur-stroke); }
+@media (prefers-reduced-motion: no-preference) {
+  .node.cur { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .55; } }
+}
+.edge { fill: none; stroke: var(--line); stroke-width: .75; opacity: .5; }
+.edge.lit { stroke: var(--done-stroke); stroke-width: 1.75; opacity: 1; }
+.edge.litfail { stroke: var(--fail-stroke); stroke-width: 1.75; opacity: 1; }
+.edge.failure { stroke-dasharray: 5 4; }
+#notes { margin-top: 12px; padding: 12px 14px; background: var(--panel); border-radius: 12px; font-size: 14px; }
+#notes h2 { font-size: 15px; font-weight: 500; margin: 0 0 4px; }
+#notes div { color: var(--muted); }
+#notes b { color: var(--text); font-weight: 500; }
+#legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+#legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; border: 1px solid; }
+</style>
+</head>
+<body>
+<h1>Build map</h1>
+<p id="progress"></p>
+<div id="paths" role="group" aria-label="Path">
+  <button data-path="normal">Normal path</button>
+  <button data-path="failure">Failure path</button>
+</div>
+<svg viewBox="0 0 680 540" role="img" aria-labelledby="map-title map-desc">
+  <title id="map-title">Customer notification system</title>
+  <desc id="map-desc">Flow from the frontend and two APIs through SNS to queues, workers and data stores, with a failure path to the dead-letter queue and alarms, all deployed with Terraform.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+  <g id="edges"></g>
+  <g id="nodes"></g>
+</svg>
+<div id="legend">
+  <span><i style="background:var(--dim-fill);border-color:var(--dim-stroke)"></i>Not built yet</span>
+  <span><i style="background:var(--cur-fill);border-color:var(--cur-stroke)"></i>You are here</span>
+  <span><i style="background:var(--done-fill);border-color:var(--done-stroke)"></i>Built and tested</span>
+</div>
+<div id="notes" aria-live="polite"></div>
+
+<script>
+// Update these two lists before each build step.
+const CURRENT = ['terraform'];
+const DONE = [];
+</script>
+<script src="build-map.local.js"></script>
+<script>
+const NODES = {
+  vue: { x: 270, y: 20, w: 140, t: 'Vue app', s: 'Upload, progress', what: 'Sends events and uploads, and shows live job progress.', why: 'Makes job state visible, using a client generated from OpenAPI.', q: 'How do you keep frontend and API types in sync?' },
+  s3: { x: 540, y: 20, w: 110, t: 'S3', s: 'Uploaded files', what: 'Stores uploaded CSV files, sent directly from the browser.', why: 'Large files never pass through the API.', q: 'Why use a presigned URL?' },
+  fastify: { x: 170, y: 90, w: 130, t: 'Fastify', s: 'TypeScript API', what: 'Validates a request, saves a job, then publishes the event.', why: 'The API answers fast because the slow work runs later.', q: 'What if the publish fails after the database commit?' },
+  django: { x: 380, y: 90, w: 130, t: 'Django', s: 'Python API', what: 'The same API as Fastify, tested by the same contract tests.', why: 'Compares both languages on identical behaviour.', q: 'What does Django give you that Fastify does not?' },
+  sns: { x: 240, y: 160, w: 200, t: 'SNS topic', s: 'customer-events', what: 'Copies one event to every subscriber.', why: 'The API does not need to know who is listening.', q: 'SNS or SQS: what does each one guarantee?' },
+  email: { x: 25, y: 240, w: 110, t: 'Email', s: 'Inbox', what: 'A direct SNS email subscription.', why: 'The simplest consumer.', q: 'Why does this consumer not need a queue?' },
+  notif: { x: 155, y: 240, w: 110, t: 'SQS', s: 'notifications', what: 'Holds messages for the Lambda.', why: 'Messages wait safely if the Lambda is failing.', q: 'What is a visibility timeout?' },
+  qnode: { x: 285, y: 240, w: 110, t: 'SQS', s: 'jobs-node', what: 'Holds job messages for the Node worker.', why: 'One queue per consumer, so workers never compete for a copy.', q: 'Why does each consumer get its own queue?' },
+  qpy: { x: 415, y: 240, w: 110, t: 'SQS', s: 'jobs-python', what: 'Holds job messages for the Python worker.', why: 'Adding it proves a new consumer needs no API change.', q: 'How do you add a consumer without touching the app?' },
+  dlq: { x: 550, y: 240, w: 100, t: 'DLQ', s: 'After 3 tries', what: 'Keeps messages that failed 3 times.', why: 'A bad message stops blocking work and stays available to inspect.', q: 'How do you replay messages from a DLQ?' },
+  lambda: { x: 155, y: 320, w: 110, t: 'Lambda', s: 'TypeScript', what: 'Runs short notification tasks.', why: 'Costs nothing when idle, but stops at 15 minutes.', q: 'When would you choose Lambda over a worker?' },
+  worker: { x: 285, y: 320, w: 110, t: 'Node worker', s: 'TS on Fargate', what: 'Polls the queue, runs job and task steps, deletes on success.', why: 'Handles long jobs with a heartbeat and a clean shutdown.', q: 'What happens if the worker dies mid-job?' },
+  pyw: { x: 415, y: 320, w: 110, t: 'Python worker', s: 'Py on Fargate', what: 'The same worker in Python. The agent step also runs here.', why: 'Compares both languages on the same job flow.', q: 'How do you stop a redelivered message paying for an LLM call twice?' },
+  cw: { x: 550, y: 320, w: 100, t: 'CloudWatch', s: 'Logs, alarms', what: 'Collects logs and raises an alarm when the DLQ has messages.', why: 'Failures reach a person, not just a log file.', q: 'What would you alarm on first?' },
+  ddb: { x: 155, y: 400, w: 110, t: 'DynamoDB', s: 'Skips duplicates', what: 'Records each eventId with a conditional write.', why: 'SQS can deliver twice, and this needs no VPC.', q: 'What makes a consumer idempotent?' },
+  pg: { x: 285, y: 400, w: 240, t: 'PostgreSQL', s: 'Jobs, tasks, parts', what: 'The source of truth for job and task state.', why: 'SQS only says what to do next. Postgres knows where things stand.', q: 'Why keep job state outside the queue?' },
+  alerts: { x: 550, y: 400, w: 100, t: 'SNS alerts', s: 'Email on alarm', what: 'Sends alarm notifications to people.', why: 'Keeps operations alerts apart from customer events.', q: 'Why keep alerts on a separate topic?' },
+  terraform: { x: 25, y: 480, w: 625, t: 'Terraform on AWS', s: 'Everything above', what: 'Creates and destroys all the infrastructure from code.', why: 'The setup can be repeated, reviewed, and removed after the demo.', q: 'What is Terraform state, and why does it matter?' },
+};
+const EDGES = [
+  { d: 'M320 64 L320 77 L235 77 L235 88', a: 'vue', b: 'fastify' },
+  { d: 'M360 64 L360 77 L445 77 L445 88', a: 'vue', b: 'django' },
+  { d: 'M410 42 L538 42', a: 'vue', b: 's3' },
+  { d: 'M235 134 L235 147 L300 147 L300 158', a: 'fastify', b: 'sns' },
+  { d: 'M445 134 L445 147 L380 147 L380 158', a: 'django', b: 'sns' },
+  { d: 'M170 112 L12 112 L12 458 L380 458 L380 446', a: 'fastify', b: 'pg' },
+  { d: 'M510 112 L537 112 L537 422 L527 422', a: 'django', b: 'pg' },
+  { d: 'M340 222 L80 222 L80 238', a: 'sns', b: 'email' },
+  { d: 'M340 222 L210 222 L210 238', a: 'sns', b: 'notif' },
+  { d: 'M340 204 L340 238', a: 'sns', b: 'qnode' },
+  { d: 'M340 222 L470 222 L470 238', a: 'sns', b: 'qpy' },
+  { d: 'M210 284 L210 318', a: 'notif', b: 'lambda' },
+  { d: 'M340 284 L340 318', a: 'qnode', b: 'worker' },
+  { d: 'M470 284 L470 318', a: 'qpy', b: 'pyw' },
+  { d: 'M210 364 L210 398', a: 'lambda', b: 'ddb' },
+  { d: 'M340 364 L340 398', a: 'worker', b: 'pg' },
+  { d: 'M470 364 L470 398', a: 'pyw', b: 'pg' },
+  { d: 'M240 284 L240 301 L575 301 L575 286', a: 'notif', b: 'dlq', failure: true },
+  { d: 'M370 284 L370 301 L575 301 L575 286', a: 'qnode', b: 'dlq', failure: true },
+  { d: 'M500 284 L500 301 L575 301 L575 286', a: 'qpy', b: 'dlq', failure: true },
+  { d: 'M610 284 L610 318', a: 'dlq', b: 'cw', failure: true },
+  { d: 'M600 364 L600 398', a: 'cw', b: 'alerts', failure: true },
+];
+const FAILURE_NODES = new Set(['notif', 'qnode', 'qpy', 'dlq', 'cw', 'alerts']);
+const LOCAL = window.BUILD_MAP_LOCAL || {};
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const state = { path: 'normal', selected: CURRENT[0] || 'terraform' };
+const isLive = (id) => DONE.includes(id);
+
+const edgeEls = EDGES.map((edge) => {
+  const path = document.createElementNS(SVG_NS, 'path');
+  path.setAttribute('d', edge.d);
+  path.setAttribute('marker-end', 'url(#arrow)');
+  document.getElementById('edges').appendChild(path);
+  return path;
+});
+
+const nodeEls = {};
+for (const [id, node] of Object.entries(NODES)) {
+  const group = document.createElementNS(SVG_NS, 'g');
+  const centre = node.x + node.w / 2;
+  group.setAttribute('tabindex', '0');
+  group.setAttribute('role', 'button');
+  group.innerHTML = `<rect x="${node.x}" y="${node.y}" width="${node.w}" height="44" rx="8"/>`
+    + `<text class="title" x="${centre}" y="${node.y + 15}">${node.t}</text>`
+    + `<text class="sub" x="${centre}" y="${node.y + 31}"></text>`;
+  const select = () => { state.selected = id; draw(); };
+  group.addEventListener('click', select);
+  group.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(); }
+  });
+  document.getElementById('nodes').appendChild(group);
+  nodeEls[id] = group;
+}
+
+document.querySelectorAll('[data-path]').forEach((button) => {
+  button.addEventListener('click', () => { state.path = button.dataset.path; draw(); });
+});
+
+function row(label, value) {
+  const line = document.createElement('div');
+  const name = document.createElement('b');
+  name.textContent = `${label}: `;
+  line.append(name, value);
+  return line;
+}
+
+function draw() {
+  const failure = state.path === 'failure';
+  document.querySelectorAll('[data-path]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.path === state.path));
+  });
+  const total = Object.keys(NODES).length;
+  const here = CURRENT.map((id) => NODES[id].t).join(', ') || 'nothing';
+  document.getElementById('progress').textContent = `${DONE.length} of ${total} parts built. You are here: ${here}.`;
+
+  EDGES.forEach((edge, index) => {
+    const live = isLive(edge.a) && isLive(edge.b) && Boolean(edge.failure) === failure;
+    const lit = live ? (failure ? ' litfail' : ' lit') : '';
+    edgeEls[index].setAttribute('class', `edge${edge.failure ? ' failure' : ''}${lit}`);
+  });
+
+  for (const [id, node] of Object.entries(NODES)) {
+    let status = 'dim';
+    if (CURRENT.includes(id)) status = 'cur';
+    else if (isLive(id)) status = failure && FAILURE_NODES.has(id) ? 'fail' : 'done';
+    nodeEls[id].setAttribute('class', `node ${status}${id === state.selected ? ' sel' : ''}`);
+    nodeEls[id].querySelector('.sub').textContent = status === 'cur' ? 'You are here' : node.s;
+    nodeEls[id].setAttribute('aria-label', `${node.t}, ${status === 'cur' ? 'you are here' : status === 'dim' ? 'not built yet' : 'built'}`);
+  }
+
+  const node = NODES[state.selected];
+  const notes = document.getElementById('notes');
+  const heading = document.createElement('h2');
+  heading.textContent = `${node.t} (${node.s})`;
+  notes.replaceChildren(heading, row('What it does', node.what), row('Why it is here', node.why));
+  for (const [label, value] of Object.entries(LOCAL[state.selected] || {})) notes.append(row(label, value));
+  notes.append(row('Question', node.q));
+}
+
+draw();
+</script>
+</body>
+</html>
