@@ -1,18 +1,16 @@
 # Customer Notification System
 
-Event-driven notification system on AWS for the DCI Cloud final project.
-One business event is published once and fanned out to several independent
-notification consumers (SNS → SQS → Lambda, with retries and a dead-letter queue).
+DCI Cloud final project. The app publishes an event once, and AWS passes it on to several notification consumers.
 
 ## Project Overview
 
 ![Architecture](architecture/architecture-diagram.png)
 
-The app publishes an event once to an SNS topic. SNS fans it out to an email subscription and to an SQS queue, which a Lambda function processes. Messages that keep failing land in a dead-letter queue, and CloudWatch shows logs and alarms.
+App → SNS → email and SQS → Lambda. Messages that keep failing go to a dead-letter queue. CloudWatch has the logs and alarms.
 
 ## Business Problem
 
-NotifyNow's main app sends every email, SMS and internal message itself. That couples it to every channel: a slow or broken channel slows or breaks the app, and every new notification type means changing the app. Details in [architecture/current-architecture.md](architecture/current-architecture.md).
+NotifyNow's app sends every email, SMS and internal message itself, so a broken channel can break the app, and each new notification type means changing the app. More in [architecture/current-architecture.md](architecture/current-architecture.md).
 
 ## Requirements
 

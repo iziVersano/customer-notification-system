@@ -1,6 +1,6 @@
 # Event Flow
 
-## Example event
+Example event (only IDs and the amount, no personal data):
 
 ```json
 {
@@ -14,26 +14,19 @@
 }
 ```
 
-Only IDs and the amount. No names, emails or card data in the message.
+## When it works
 
-## Happy path
+1. The app publishes the event to the SNS topic.
+2. SNS sends a copy to the email subscription and to the SQS queue.
+3. Lambda reads from the queue and writes the SMS and internal notifications to the logs.
+4. The message is deleted from the queue.
 
-1. The app publishes the event once to the SNS topic `customer-events`.
-2. SNS copies it to every subscriber (fan-out):
-   - the **email subscription** sends a short email to my inbox
-   - the **SQS queue** `notifications` stores a copy
-3. Lambda picks the message up from the queue.
-4. Lambda builds the notification (SMS and internal, simulated) and writes it to CloudWatch Logs.
-5. Lambda succeeds, so the message is deleted from the queue.
+## When it fails
 
-## Failure path
+1. Lambda throws an error.
+2. The message comes back to the queue and is tried again.
+3. After 3 failed tries it moves to the DLQ.
+4. A CloudWatch alarm goes off.
+5. The email already went out, so that part isn't affected.
 
-1. Lambda throws an error while processing.
-2. The message becomes visible in the queue again after the visibility timeout and is retried.
-3. After 3 failed tries it moves to the dead-letter queue `notifications-dlq`.
-4. A CloudWatch alarm fires when the DLQ has messages.
-5. The email subscriber is not affected and has already sent its email.
-
-## Why `eventId`
-
-The same message can be delivered more than once. Lambda uses `eventId` to recognise a duplicate and skip it (idempotency, week 3).
+The same message can arrive twice, so Lambda uses `eventId` to skip duplicates (week 3).

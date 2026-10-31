@@ -2,24 +2,21 @@
 
 ## Functional
 
-| # | Requirement |
-|---|---|
-| F1 | The app publishes an event with a type, IDs and a timestamp (example: `OrderCreated`). |
-| F2 | Every event reaches at least two independent consumers. |
-| F3 | At least one consumer reads from a queue and processes the event in code. |
-| F4 | Consumers work asynchronously. The app does not wait for them. |
-| F5 | A failed message is retried automatically. |
-| F6 | A message that fails again and again moves to a dead-letter queue. |
-| F7 | Every processed and failed message is logged. |
+- The app publishes an event with a type, IDs and a timestamp, e.g. `OrderCreated`.
+- Each event reaches at least two consumers.
+- At least one consumer reads from a queue and handles the event in code.
+- The app doesn't wait for the consumers.
+- Failed messages are retried.
+- Messages that keep failing go to a dead-letter queue.
+- Processing and failures are logged.
+- An alarm goes off when messages reach the dead-letter queue.
 
 ## Non-functional
 
-| Area | Requirement |
-|---|---|
-| Decoupling | The app only knows one topic, not the consumers. |
-| Reliability | A failing consumer does not block the app or the other consumers. Messages are not lost. |
-| Scalability | Handles bursts of events without changing the setup. |
-| Security | Each part gets only the permissions it needs. No personal data beyond IDs in messages. |
-| Observability | Logs and alarms for errors and for messages in the dead-letter queue. |
-| Cost | Fits the AWS free tier. No servers running all the time. |
-| Reproducible | Everything is created and destroyed with Terraform. |
+- The app only knows the topic, not the consumers.
+- One broken consumer doesn't affect the others.
+- Handles bursts without changing the setup.
+- Each part only gets the permissions it needs.
+- No personal data in messages, just IDs.
+- Stays in the free tier, with no servers running all the time.
+- Everything is created and destroyed with Terraform.

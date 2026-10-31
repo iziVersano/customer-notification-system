@@ -1,31 +1,24 @@
-# Current Architecture Analysis
-
-## How it works today
+# Current Setup
 
 ```
 Customer action
       |
       v
-Main application
+Main app
       |
-      +--> send email
-      +--> send SMS
-      +--> send internal notification
+      +--> email
+      +--> SMS
+      +--> internal notification
 ```
 
-The main app does the business work and then calls every notification channel itself, one after the other, while the customer waits.
+The app does its work, then calls each channel itself while the customer waits.
 
-## Problems
+Problems:
 
-| Problem | What it means in practice |
-|---|---|
-| Tight coupling | The app knows every channel, its API and its credentials. A new channel means changing and redeploying the main app. |
-| Failures spread | If the SMS provider is down, the request can fail or hang, even though the order itself was fine. |
-| Slow responses | The customer waits until all notifications are sent. |
-| No retries | If a send fails, it is simply lost unless someone wrote retry code in the app. |
-| No visibility | There is no single place to see what was sent and what failed. |
-| Hard to scale | A busy day means the app does more notification work on top of its real work. |
+- **Tight coupling.** The app knows every channel, its API and its credentials. A new channel means changing and redeploying the app.
+- **Failures spread.** If SMS is down, the request can fail even though the order was fine.
+- **Slow.** The customer waits for all the sends.
+- **No retries.** A failed send is just lost.
+- **No overview.** Nowhere to see what was sent or what failed.
 
-## What coupling means
-
-Two parts are coupled when one has to know about the other and changes or failures in one hit the other. Here the main app is coupled to every notification channel. The goal is that the app only says "this happened" and does not know or care who reacts to it.
+Coupling means one part has to know about another, so its changes and failures hit you too. The goal is that the app only says "this happened" and doesn't know who reacts.
