@@ -7,7 +7,7 @@ ALLOWED_HOSTS = os.environ["DJANGO_ALLOWED_HOSTS"].split(",")
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
 
-INSTALLED_APPS = []
+INSTALLED_APPS = ["jobs"]
 
 TIME_ZONE = "UTC"
 
