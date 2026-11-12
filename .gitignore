@@ -22,3 +22,10 @@ __pycache__/
 
 # OS
 .DS_Store
+
+# Lambda TypeScript
+node_modules/
+lambda/dist/
+
+# Lambda zip built by Terraform
+terraform/build/

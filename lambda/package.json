@@ -1,0 +1,14 @@
+{
+  "name": "notification-lambda",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && esbuild src/handler.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/index.mjs"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.164",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.9.0"
+  }
+}
