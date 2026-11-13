@@ -12,3 +12,8 @@ output "notifications_queue_arn" {
   description = "ARN of the notifications queue"
   value       = aws_sqs_queue.notifications.arn
 }
+
+output "notifications_dlq_url" {
+  description = "Dead-letter queue for notifications that failed 3 times"
+  value       = aws_sqs_queue.notifications_dlq.id
+}
