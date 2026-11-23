@@ -91,7 +91,11 @@ cd ..
 python3 server.py
 ```
 
-Open http://localhost:8790 and click **Ship order**. Both dots turn green, and the email arrives.
+Open http://localhost:8790. The page has two orders:
+
+- **A-2001, Ship order:** a good event. Both dots turn green, and the email arrives.
+- **A-2002, Ship order:** a broken event with no email. Lambda fails 3 times, the message lands in the dead-letter queue, and the alarm emails you after about 5 minutes.
+- **Reset demo, Delete:** empties the dead-letter queue, so the alarm can fire again.
 
 ### Or test with the CLI only
 

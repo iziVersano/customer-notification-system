@@ -4,6 +4,7 @@ import os
 import subprocess
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -11,12 +12,16 @@ ACCOUNT = os.environ.get('AWS_ACCOUNT_ID', '272423022449')
 PROFILE = os.environ.get('AWS_PROFILE', 'dci')
 REGION = 'eu-central-1'
 TOPIC = f'arn:aws:sns:{REGION}:{ACCOUNT}:customer-events'
+DLQ = f'https://sqs.{REGION}.amazonaws.com/{ACCOUNT}/notifications-dlq'
 AWS = os.environ.get('AWS_BIN', 'aws')
 PORT = int(os.environ.get('PORT', '8790'))
 DIST = Path(__file__).resolve().parent / 'frontend' / 'dist'
 
-EVENT = {'type': 'order.shipped', 'orderId': 'A-2001', 'customer': 'Lena Hoffmann', 'email': 'lena@example.com'}
-sent = {'good': None}
+EVENTS = {
+    'good': {'type': 'order.shipped', 'orderId': 'A-2001', 'customer': 'Lena Hoffmann', 'email': 'lena@example.com'},
+    'bad': {'type': 'order.shipped', 'orderId': 'A-2002', 'customer': 'Test Broken'},
+}
+sent = {'good': None, 'bad': None, 'purged': None}
 lock = threading.Lock()
 
 
@@ -28,31 +33,70 @@ def aws(*args):
     return json.loads(done.stdout) if done.stdout.strip() else {}
 
 
-def was_logged():
-    if not sent['good']:
-        return False
+def queue_and_alarm():
+    with ThreadPoolExecutor() as pool:
+        queue = pool.submit(aws, 'sqs', 'get-queue-attributes', '--queue-url', DLQ,
+                            '--attribute-names', 'ApproximateNumberOfMessages')
+        alarm = pool.submit(aws, 'cloudwatch', 'describe-alarms', '--alarm-names', 'notifications-dlq-not-empty')
+        count = int(queue.result()['Attributes']['ApproximateNumberOfMessages'])
+        return count, alarm.result()['MetricAlarms'][0]['StateValue']
+
+
+def bad_blocked(count, alarm):
+    now = time.time()
+    if count and sent['bad']:
+        return 'Sent. Reset before you run it again.'
+    if count:
+        return 'Reset first: an old message is in the dead-letter queue.'
+    if sent['purged'] and now - sent['purged'] < 60:
+        return 'The reset takes up to a minute.'
+    if alarm != 'OK':
+        return 'Wait for the alarm to show OK (3 to 5 minutes).'
+    if sent['bad'] and now - sent['bad'] < 600:
+        return 'Sent. The alert takes about 5 minutes.'
+    return ''
+
+
+def lambda_results():
+    result = {'logged': False, 'tries': 0}
+    times = [t for t in (sent['good'], sent['bad']) if t]
+    if not times:
+        return result
     logs = aws('logs', 'filter-log-events', '--log-group-name', '/aws/lambda/notification-lambda',
-               '--start-time', str(int((sent['good'] - 2) * 1000)), '--filter-pattern', '"messageId"')
+               '--start-time', str(int((min(times) - 2) * 1000)), '--filter-pattern', '"messageId"')
+    failures = {}
     for entry in logs.get('events', []):
-        text = entry['message']
+        text, at = entry['message'], entry['timestamp'] / 1000 + 2
         try:
             line = json.loads(text[text.index('{'):])
         except ValueError:
             continue
-        if line.get('orderId') == EVENT['orderId']:
-            return True
-    return False
+        if sent['good'] and at >= sent['good'] and line.get('orderId') == 'A-2001':
+            result['logged'] = True
+        if sent['bad'] and at >= sent['bad'] and line.get('level') == 'error':
+            failures[line['messageId']] = failures.get(line['messageId'], 0) + 1
+    result['tries'] = min(3, max(failures.values(), default=0))
+    return result
 
 
 def state():
-    return {**sent, 'logged': was_logged()}
+    count, alarm = queue_and_alarm()
+    return {**sent, **lambda_results(), 'dlq': count, 'alarm': alarm, 'blocked': bad_blocked(count, alarm)}
 
 
-def ship():
+def act(name):
     with lock:
-        started = time.time()
-        aws('sns', 'publish', '--topic-arn', TOPIC, '--message', json.dumps(EVENT))
-        sent['good'] = started
+        if name in EVENTS:
+            if name == 'bad':
+                reason = bad_blocked(*queue_and_alarm())
+                if reason:
+                    raise RuntimeError(reason)
+            started = time.time()
+            aws('sns', 'publish', '--topic-arn', TOPIC, '--message', json.dumps(EVENTS[name]))
+            sent[name] = started
+        else:
+            aws('sqs', 'purge-queue', '--queue-url', DLQ)
+            sent.update(good=None, bad=None, purged=time.time())
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -88,10 +132,11 @@ class Handler(BaseHTTPRequestHandler):
         # The custom header stops other websites from pressing the buttons.
         if not self.local() or self.headers.get('X-Demo') != '1':
             return self.reply(403, {'error': 'local only'})
-        if self.path != '/api/good':
+        name = self.path.replace('/api/', '', 1)
+        if name not in ('good', 'bad', 'reset'):
             return self.reply(404, {'error': 'not found'})
         try:
-            ship()
+            act(name)
             self.reply(200, {'ok': True})
         except Exception as error:
             self.reply(502, {'error': str(error)})

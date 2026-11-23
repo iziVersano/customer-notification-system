@@ -1,6 +1,13 @@
+export type Action = 'good' | 'bad' | 'reset'
+
 export interface DemoState {
   good: number | null
+  bad: number | null
   logged: boolean
+  tries: number
+  dlq: number
+  alarm: 'OK' | 'ALARM' | 'INSUFFICIENT_DATA'
+  blocked: string
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -12,5 +19,5 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const getState = () => request<DemoState>('state')
 
-export const shipOrder = () =>
-  request<{ ok: boolean }>('good', { method: 'POST', headers: { 'X-Demo': '1' } })
+export const runAction = (action: Action) =>
+  request<{ ok: boolean }>(action, { method: 'POST', headers: { 'X-Demo': '1' } })

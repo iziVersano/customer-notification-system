@@ -1,6 +1,7 @@
 interface Step {
   label: string
   done: boolean
+  failed?: boolean
 }
 
 interface OrderProps {
@@ -8,10 +9,11 @@ interface OrderProps {
   customer: string
   steps: Step[]
   disabled: boolean
+  hint?: string
   onShip: () => void
 }
 
-export function Order({ id, customer, steps, disabled, onShip }: OrderProps) {
+export function Order({ id, customer, steps, disabled, hint, onShip }: OrderProps) {
   return (
     <section>
       <header>
@@ -21,9 +23,10 @@ export function Order({ id, customer, steps, disabled, onShip }: OrderProps) {
         </div>
         <button onClick={onShip} disabled={disabled}>Ship order</button>
       </header>
+      {hint && <p className="muted">{hint}</p>}
       <ul>
-        {steps.map(({ label, done }, index) => (
-          <li key={index} className={done ? 'done' : ''}>{label}</li>
+        {steps.map(({ label, done, failed }, index) => (
+          <li key={index} className={done ? (failed ? 'failed' : 'done') : ''}>{label}</li>
         ))}
       </ul>
     </section>
