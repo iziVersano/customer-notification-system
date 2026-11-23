@@ -1,99 +1,124 @@
 # Customer Notification System
 
-DCI Cloud final project. The app publishes an event once, and AWS passes it on to several notification consumers.
-
-## Project Overview
+DCI Cloud AWS final project. An online shop publishes one event, for example "order shipped", and AWS delivers it to every place that needs it. If something fails, nothing is lost.
 
 ![Architecture](architecture/architecture-diagram.png)
 
-App → SNS → email and SQS → Lambda. Messages that keep failing go to a dead-letter queue. CloudWatch has the logs and alarms.
+## The problem
 
-## Business Problem
+NotifyNow's app sends every notification itself. One broken channel can break an order, failed messages are lost, and every new notification type means changing the app.
 
-NotifyNow's app sends every email, SMS and internal message itself, so a broken channel can break the app, and each new notification type means changing the app. More in [architecture/current-architecture.md](architecture/current-architecture.md).
+**The idea:** the app only says "this happened". AWS does the rest.
 
-## Requirements
+## How it works
 
-See [requirements/](requirements/).
+1. The app publishes an event to the SNS topic `customer-events`.
+2. SNS sends a copy to an email address and to the SQS queue `notifications` (fan-out).
+3. A Lambda reads the queue, checks the event and writes a log to CloudWatch.
+4. If Lambda fails, SQS retries. After 3 failed tries the message moves to `notifications-dlq`.
+5. A CloudWatch alarm on the dead-letter queue emails a person.
 
-## Architecture Options
-
-See [architecture/architecture-options.md](architecture/architecture-options.md).
-
-## Final Architecture
-
-Option A: SNS → SQS → Lambda.
-
-1. An event is published to the `customer-events` topic. There is no app yet, so I publish from the CLI.
-2. SNS sends it to an email subscriber and to the `notifications` queue.
-3. A TypeScript Lambda reads the queue, checks the event and logs it.
-4. After 3 failed tries a message moves to `notifications-dlq`.
-5. A CloudWatch alarm on the DLQ emails me through the `alerts` topic.
-
-The details are in [notifications/notification-flow.md](notifications/notification-flow.md).
-
-## AWS Services
-
-| Service | Used for |
+| AWS service | Role |
 |---|---|
-| SNS | `customer-events` fan-out, and `alerts` for the alarm email |
-| SQS | The `notifications` queue and its dead-letter queue |
+| SNS | Fan-out of events, and the alarm email |
+| SQS | Queue with retries, plus a dead-letter queue |
 | Lambda | Checks and logs each event (TypeScript, Node 22) |
-| CloudWatch | Lambda logs and the DLQ alarm |
-| IAM | The Lambda's least-privilege role |
-| AWS Budgets | Email alert on a $5 monthly budget |
+| CloudWatch | Logs and the dead-letter queue alarm |
+| IAM | Least-privilege role for the Lambda |
+| Budgets | Email alert at $5 a month |
 
-## Architecture Decisions
+## What's in the repo
 
-See [architecture/architecture-decisions.md](architecture/architecture-decisions.md).
+| Folder | Content |
+|---|---|
+| `terraform/` | All AWS resources |
+| `lambda/` | The Lambda code (`src/handler.ts`) |
+| `demo-ui/` | A small React page and Python server that play the shop app |
+| `presentation/` | Slides and demo script |
+| `architecture/`, `requirements/`, `notifications/`, `reliability/`, `monitoring/`, `security/`, `cost/`, `tests/` | Design docs and test results |
 
-## Terraform
+## Run it
 
-Infrastructure lives in [terraform/](terraform/). Every command uses the `dci` AWS profile. Build the Lambda first, because Terraform zips the built file:
+**You need:** an AWS account, the AWS CLI with a profile for it, Terraform 1.14+, Node 22+ and Python 3. Region: `eu-central-1`.
+
+In every terminal you use, first set your profile and account:
 
 ```bash
-(cd lambda && npm ci && npm run build)
-cd terraform
-terraform init
-terraform plan
+export AWS_PROFILE=your-aws-profile
+export AWS_ACCOUNT_ID=123456789012
+export AWS_REGION=eu-central-1
 ```
 
-## Testing
+### 1. Build the Lambda
 
-See [tests/test-results.md](tests/test-results.md).
+```bash
+cd lambda
+npm ci
+npm run build
+cd ..
+```
 
-## Well-Architected Review
+### 2. Create the AWS resources
 
-See [architecture/well-architected-review.md](architecture/well-architected-review.md).
+```bash
+cd terraform
+cp example.tfvars terraform.tfvars
+```
 
-## Security
+Edit `terraform.tfvars`:
 
-See [security/iam-design.md](security/iam-design.md).
+```hcl
+notification_email = "you@example.com"
+aws_profile        = "your-aws-profile"
+aws_account_id     = "123456789012"
+```
 
-## Cost Considerations
+```bash
+terraform init
+terraform apply
+cd ..
+```
 
-See [cost/cost-analysis.md](cost/cost-analysis.md).
+AWS emails you 2 confirmation links (events and alarm). Click both, or no email arrives.
 
-## Limitations & Future Improvements
+### 3. Start the demo page
 
-Not built or not finished:
+```bash
+cd demo-ui/frontend
+npm install
+npm run build
+cd ..
+python3 server.py
+```
 
-- **Personal data.** Test events carry a made-up name and email, and the Lambda logs the email. The requirement says IDs only, so that isn't met yet.
-- **Duplicates.** A repeated message is handled again. Next: a DynamoDB check on `eventId`, which the events also need to start sending.
-- **Customer email and SMS.** SNS email goes to a fixed list, and SMS and internal messages are only stood in for by a log line. Next: consumers that really send, for example with SES.
-- **Delivery overview.** The logs show what the Lambda handled, not whether an email was delivered.
-- **Encryption.** The SNS topics aren't encrypted at rest.
-- **Deploys.** CI only checks. Next: deploys with OIDC and remote Terraform state.
-- **Backend.** `backend/` is an unfinished extension: a local Django skeleton with a health check and job models. It doesn't publish to SNS and isn't deployed.
-- **Later:** Lamp to EU, product compliance checks on the same event system.
+Open http://localhost:8790 and click **Ship order**. Both dots turn green, and the email arrives.
 
-## Presentation
+### Or test with the CLI only
 
-See [presentation/](presentation/).
+Replace `<topic-arn>` with the `customer_events_topic_arn` that `terraform output` prints.
 
-## Cleanup
+```bash
+# Good event: email + Lambda log
+aws sns publish --topic-arn <topic-arn> --message '{"type":"order.shipped","orderId":"A-2001","email":"lena@example.com"}'
+
+# Broken event (no email): 3 tries, dead-letter queue, alarm email after about 5 minutes
+aws sns publish --topic-arn <topic-arn> --message '{"type":"order.shipped","orderId":"A-2002"}'
+
+# See the Lambda log
+aws logs tail /aws/lambda/notification-lambda --since 10m
+```
+
+### Clean up
 
 ```bash
 cd terraform
 terraform destroy
 ```
+
+## Next steps
+
+- Duplicate check with DynamoDB
+- Only IDs in events, no personal data
+- Encrypt the SNS topics
+- Real customer emails, for example with SES
+- Automatic deploys from GitHub Actions

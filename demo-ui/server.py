@@ -7,7 +7,8 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-ACCOUNT = '272423022449'
+ACCOUNT = os.environ.get('AWS_ACCOUNT_ID', '272423022449')
+PROFILE = os.environ.get('AWS_PROFILE', 'dci')
 REGION = 'eu-central-1'
 TOPIC = f'arn:aws:sns:{REGION}:{ACCOUNT}:customer-events'
 AWS = os.environ.get('AWS_BIN', 'aws')
@@ -20,7 +21,7 @@ lock = threading.Lock()
 
 
 def aws(*args):
-    cmd = [AWS, *args, '--profile', 'dci', '--region', REGION, '--output', 'json', '--no-cli-pager']
+    cmd = [AWS, *args, '--profile', PROFILE, '--region', REGION, '--output', 'json', '--no-cli-pager']
     done = subprocess.run(cmd, capture_output=True, text=True, timeout=25)
     if done.returncode:
         raise RuntimeError(done.stderr.strip() or 'AWS call failed')
