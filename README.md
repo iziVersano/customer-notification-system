@@ -37,6 +37,20 @@ NotifyNow's app sends every notification itself. One broken channel can break an
 | `presentation/` | Slides and demo script |
 | `architecture/`, `requirements/`, `notifications/`, `reliability/`, `monitoring/`, `security/`, `cost/`, `tests/` | Design docs and test results |
 
+## Demo UI
+
+`demo-ui/` plays the shop app, so the flow can be shown with buttons instead of CLI commands.
+
+```
+React page → server.py → aws sns publish → SNS → email + SQS → Lambda → CloudWatch Logs
+     ↑                                                                    │
+     └──── asks every 4 s ←── server.py searches the logs for the order ←─┘
+```
+
+- `frontend/`: React + TypeScript (Vite). One card per order, with a button and status dots.
+- `server.py`: a small Python server on `localhost:8790`. It runs the AWS CLI for each button, and refuses to start if the profile points to the wrong account.
+- Lambda never calls the page. The page asks the server, and the server reads the Lambda logs, the dead-letter queue and the alarm state.
+
 ## Run it
 
 **You need:** an AWS account, the AWS CLI with a profile for it, Terraform 1.14+, Node 22+ and Python 3. Region: `eu-central-1`.
