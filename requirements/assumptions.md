@@ -2,7 +2,7 @@
 
 ## Assumptions
 
-- The course core has no main app. I simulate it by publishing test events from the CLI. A Django API is an unfinished extension in `backend/`. It doesn't publish to SNS.
+- The course core has no main app. I simulate it with the small demo page in `demo-ui/`, or by publishing test events from the CLI.
 - Real emails only go to me. One log line per event stands in for SMS and internal notifications.
 - Low volume, up to a few hundred events a day.
 - A few seconds of delay is fine.

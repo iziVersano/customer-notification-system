@@ -18,6 +18,5 @@ The main choices, why I made them, and what each one costs me.
 
 - **Duplicate check in DynamoDB.** It was planned for week 3 and isn't built.
 - **Deploys with OIDC.** Also planned, not built.
-- **Django API as the publisher.** Started in `backend/`, but it doesn't publish to SNS.
 
 The two options I compared first are in [architecture-options.md](architecture-options.md).
