@@ -17,6 +17,6 @@
 - One broken consumer doesn't affect the others.
 - Handles bursts without changing the setup.
 - Each part only gets the permissions it needs.
-- No personal data in messages, just IDs.
-- Stays in the free tier, with no servers running all the time.
+- No personal data in messages, just IDs. **Not met yet:** test events carry a made-up name and email, and the Lambda logs the email.
+- Stays in the free tier, with no servers running all the time. Email is free only up to 1,000 a month.
 - Everything is created and destroyed with Terraform.

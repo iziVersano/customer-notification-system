@@ -7,6 +7,7 @@ All tests ran against the deployed system in the DCI account (`eu-central-1`). E
 | 1 | Account guard refuses any other account | 2026-11-13 | ✅ Pass |
 | 2 | Happy path: event → SNS → email + SQS → Lambda log | 2026-11-13 | ✅ Pass |
 | 3 | Failure path: bad event → 3 tries → DLQ → alarm | 2026-11-13 | ✅ Pass |
+| 4 | Failure path up to the alert email | 2026-11-22 | ✅ Pass |
 
 ## 1. Account guard
 
@@ -54,3 +55,17 @@ The Lambda rejects it and reports it as a failed batch item, so only this messag
 | 08:13:45 | Alarm `notifications-dlq-not-empty` changes to **ALARM** and notifies the `alerts` topic |
 
 The good messages are not blocked while this one fails, and the bad one is kept for 14 days for a person to look at.
+
+## 4. Alert email
+
+Test 3 stopped at the topic. Its email subscription was never confirmed, so no email went out. I created it again, confirmed it, emptied the DLQ and published a bad event (`A-1044`).
+
+| Time (UTC) | What happened |
+|---|---|
+| 12:12:52 | With the DLQ empty, the alarm changes to OK and the OK email arrives |
+| 12:20:54 | Bad event published |
+| 12:20:55 | Try 1 fails |
+| 12:21:25 | Try 2 fails |
+| 12:21:55 | Try 3 fails |
+| about 12:22:30 | The message is in the DLQ |
+| 12:25:52 | The alarm changes to ALARM and the email arrives in the inbox |

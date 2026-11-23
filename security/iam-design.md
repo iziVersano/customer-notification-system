@@ -33,6 +33,7 @@ The AWS provider has `allowed_account_ids = [272423022449]`. If the credentials 
 
 ## Not done yet
 
+- **IDs only.** Test events carry a made-up name and email, and the email ends up in the Lambda log.
 - **SNS encryption**, as above.
 - **OIDC for deploys.** A GitHub Actions role that only the repo's `main` branch can assume. Then no long-lived keys are needed in GitHub.
 - **Remote state.** S3 with locking, so state isn't only on one laptop.
