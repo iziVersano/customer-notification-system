@@ -1,0 +1,16 @@
+body { margin: 0; color: #222; font: 18px/1.35 system-ui, sans-serif; }
+main { max-width: 600px; margin: auto; padding: 24px 16px; }
+h1 { margin: 0; font-size: 28px; }
+h2 { margin: 0; font-size: 20px; }
+p { margin: 6px 0; }
+section { margin: 16px 0; padding: 14px 16px; border: 1px solid #ddd; border-radius: 8px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+ul { margin: 10px 0 0; padding: 0; list-style: none; }
+li { color: #666; }
+li::before { content: '○'; display: inline-block; width: 26px; }
+li.done { color: #27692a; }
+li.done::before { content: '●'; }
+button { padding: 8px 14px; border: 0; border-radius: 6px; background: #222; color: #fff; font: inherit; cursor: pointer; }
+button:disabled { opacity: 0.35; cursor: default; }
+.muted { color: #666; font-size: 15px; }
+.error { color: #b3261e; }
