@@ -18,6 +18,6 @@ There are two topics, so alerts don't mix with customer events.
 - **Email has to be confirmed.** Until someone clicks the link, SNS sends nothing. My first `alerts` subscription was never confirmed and disappeared, so the alarm emailed nobody. Fixed and tested on 22 November.
 - **Email goes to a fixed list.** It can't send to the customer named in the event, and the mail is plain JSON. Real customer email needs a consumer that uses SES.
 - **SNS doesn't keep messages for later.** If a delivery fails on the AWS side it retries, up to 23 days for SQS and 6 hours for email, and then drops the message. There is no DLQ on the subscriptions.
-- **Not encrypted at rest yet.** See [iam-design.md](../security/iam-design.md).
+- **Encrypted at rest.** The `customer-events` topic uses AWS-managed `alias/aws/sns`; the `alerts` topic uses the customer-managed key in `terraform/encryption.tf` so CloudWatch can be granted `kms:Decrypt` and `kms:GenerateDataKey*`. The custom key policy allows the Terraform caller and SNS for the alerts topic, and CloudWatch use is scoped to the DLQ alarm. The CloudWatch SNS publish policy is also scoped to that alarm. The custom key has a cost and a 7-day deletion window.
 
 Set up in `terraform/sns.tf` and `terraform/alarms.tf`.
