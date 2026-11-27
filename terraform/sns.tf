@@ -1,5 +1,6 @@
 resource "aws_sns_topic" "customer_events" {
-  name = "customer-events"
+  name              = "customer-events"
+  kms_master_key_id = "alias/aws/sns"
 }
 
 # AWS sends a confirmation email. Nothing is delivered until the link in it is clicked.
