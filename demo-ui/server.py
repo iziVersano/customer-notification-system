@@ -18,8 +18,8 @@ PORT = int(os.environ.get('PORT', '8790'))
 DIST = Path(__file__).resolve().parent / 'frontend' / 'dist'
 
 EVENTS = {
-    'good': {'type': 'order.shipped', 'orderId': 'A-2001', 'customer': 'Lena Hoffmann', 'email': 'lena@example.com'},
-    'bad': {'type': 'order.shipped', 'orderId': 'A-2002', 'customer': 'Test Broken'},
+    'good': {'type': 'order.shipped', 'orderId': 'A-2001', 'customerId': 'C-2001'},
+    'bad': {'type': 'order.shipped', 'orderId': 'A-2002'},
 }
 sent = {'good': None, 'bad': None, 'purged': None}
 lock = threading.Lock()
