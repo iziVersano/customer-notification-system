@@ -136,6 +136,5 @@ terraform destroy
 ## Next steps
 
 - Duplicate check with DynamoDB
-- Encrypt the SNS topics
 - Real customer emails, for example with SES
 - Automatic deploys from GitHub Actions
