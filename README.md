@@ -8,7 +8,7 @@ DCI Cloud AWS final project. An online shop publishes one event, for example "or
 
 NotifyNow's app sends every notification itself. One broken channel can break an order, failed messages are lost, and every new notification type means changing the app.
 
-**The idea:** the app only says "this happened". AWS does the rest.
+**The idea:** the app only says "this happened". AWS does the rest. Events carry identifiers such as `orderId` and `customerId`, not customer names or email addresses.
 
 ## How it works
 
@@ -108,7 +108,7 @@ python3 server.py
 Open http://localhost:8790. The page has two orders:
 
 - **A-2001, Ship order:** a good event. Both dots turn green, and the email arrives.
-- **A-2002, Ship order:** a broken event with no email. Lambda fails 3 times, the message lands in the dead-letter queue, and the alarm emails you after about 5 minutes.
+- **A-2002, Ship order:** a broken event with no customer ID. Lambda fails 3 times, the message lands in the dead-letter queue, and the alarm emails you after about 5 minutes.
 - **Reset demo, Delete:** empties the dead-letter queue, so the alarm can fire again.
 
 ### Or test with the CLI only
@@ -117,9 +117,9 @@ Replace `<topic-arn>` with the `customer_events_topic_arn` that `terraform outpu
 
 ```bash
 # Good event: email + Lambda log
-aws sns publish --topic-arn <topic-arn> --message '{"type":"order.shipped","orderId":"A-2001","email":"lena@example.com"}'
+aws sns publish --topic-arn <topic-arn> --message '{"type":"order.shipped","orderId":"A-2001","customerId":"C-2001"}'
 
-# Broken event (no email): 3 tries, dead-letter queue, alarm email after about 5 minutes
+# Broken event (no customerId): 3 tries, dead-letter queue, alarm email after about 5 minutes
 aws sns publish --topic-arn <topic-arn> --message '{"type":"order.shipped","orderId":"A-2002"}'
 
 # See the Lambda log
@@ -136,7 +136,5 @@ terraform destroy
 ## Next steps
 
 - Duplicate check with DynamoDB
-- Only IDs in events, no personal data
-- Encrypt the SNS topics
 - Real customer emails, for example with SES
 - Automatic deploys from GitHub Actions

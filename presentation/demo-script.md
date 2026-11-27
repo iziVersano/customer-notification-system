@@ -24,10 +24,10 @@ By 09:45:
 - Open `slides.pdf`, Gmail and a terminal with a big font. Close everything else.
 - Have the backup recording ready.
 
-At 10:00, publish the bad event (it has no email field). It needs about 5 minutes to reach the alarm.
+At 10:00, publish the bad event (it has no customerId field). It needs about 5 minutes to reach the alarm.
 
 ```bash
-aws sns publish --profile dci --region eu-central-1 --topic-arn arn:aws:sns:eu-central-1:272423022449:customer-events --message '{"type":"order.shipped","orderId":"A-2002","customer":"Test Broken"}'
+aws sns publish --profile dci --region eu-central-1 --topic-arn arn:aws:sns:eu-central-1:272423022449:customer-events --message '{"type":"order.shipped","orderId":"A-2002"}'
 ```
 
 When rehearsing, publish it 10 minutes before you start the timer.
@@ -50,14 +50,14 @@ When rehearsing, publish it 10 minutes before you start the timer.
 
 > I reviewed it against the six Well-Architected pillars. Each part has limited permissions, Terraform builds it all, and it costs about zero at this volume.
 >
-> Next I would add a duplicate check, keep personal data out of events, encrypt SNS and automate deploys.
+> Next I would add a duplicate check, use IDs only in events, encrypt SNS and automate deploys.
 
 ## 2:00 Demo: it works
 
 > I'll publish one good event.
 
 ```bash
-aws sns publish --profile dci --region eu-central-1 --topic-arn arn:aws:sns:eu-central-1:272423022449:customer-events --message '{"type":"order.shipped","orderId":"A-2001","customer":"Lena Hoffmann","email":"lena@example.com"}'
+aws sns publish --profile dci --region eu-central-1 --topic-arn arn:aws:sns:eu-central-1:272423022449:customer-events --message '{"type":"order.shipped","orderId":"A-2001","customerId":"C-2001"}'
 ```
 
 Show the email in Gmail, then the log:

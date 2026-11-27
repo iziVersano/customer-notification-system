@@ -1,16 +1,12 @@
 # Event Flow
 
-The target event from the design, with only IDs and the amount. **Today's events are different:** they use `type`, `orderId` and `email`, and have no `eventId`. See [notification-flow.md](../notifications/notification-flow.md).
+The current demo event carries identifiers only: `type`, `orderId` and `customerId`. It does not yet include the target design's `eventId`, amount or timestamp. See [notification-flow.md](../notifications/notification-flow.md).
 
 ```json
 {
-  "eventType": "OrderCreated",
-  "eventId": "evt-7f3a",
-  "customerId": "12345",
-  "orderId": "ORD-1001",
-  "amount": 79.99,
-  "currency": "EUR",
-  "timestamp": "2026-10-30T10:15:00Z"
+  "type": "order.shipped",
+  "orderId": "A-2001",
+  "customerId": "C-2001"
 }
 ```
 

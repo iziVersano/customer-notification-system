@@ -49,7 +49,7 @@ export function App() {
 
       <Order
         id="A-2001"
-        customer="Lena Hoffmann"
+        customer="Customer C-2001"
         disabled={disabled}
         onShip={() => run('good')}
         steps={[
@@ -60,7 +60,7 @@ export function App() {
 
       <Order
         id="A-2002"
-        customer="No email address"
+        customer="Missing customer ID"
         disabled={disabled || state.blocked !== ''}
         hint={state.blocked}
         onShip={() => run('bad')}

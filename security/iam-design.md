@@ -28,12 +28,12 @@ The AWS provider has `allowed_account_ids = [272423022449]`. If the credentials 
 ## Encryption
 
 - The SQS queue and the DLQ are encrypted at rest with SSE-SQS. AWS turns it on by default, and I checked it on the live queue.
-- The SNS topics are not encrypted yet. The fix is one line per topic: `kms_master_key_id = "alias/aws/sns"`.
+- `customer-events` uses AWS-managed `alias/aws/sns`; the `alerts` topic uses the customer-managed key in `terraform/encryption.tf`, because the AWS-managed key policy cannot be edited to grant CloudWatch `kms:Decrypt` and `kms:GenerateDataKey*`. The custom key policy is restricted to the alerts topic and DLQ alarm. The alerts topic resource policy separately permits that alarm to publish. The KMS key costs extra.
 - Everything in transit uses HTTPS. The AWS APIs only accept TLS.
 
 ## Not done yet
 
-- **IDs only.** Test events carry a made-up name and email, and the email ends up in the Lambda log.
-- **SNS encryption**, as above.
+- **Verify the IDs-only event and log schema** after applying the changes.
+- **Verify encrypted SNS delivery** to the email subscription, SQS queue and CloudWatch alarm after applying the key policy.
 - **OIDC for deploys.** A GitHub Actions role that only the repo's `main` branch can assume. Then no long-lived keys are needed in GitHub.
 - **Remote state.** S3 with locking, so state isn't only on one laptop.

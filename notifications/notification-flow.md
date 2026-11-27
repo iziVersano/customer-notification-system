@@ -5,18 +5,18 @@ What happens to one event, as it runs today.
 ## A good event
 
 ```json
-{"type":"order.shipped","orderId":"A-1042","customer":"Lena Hoffmann","email":"lena@example.com"}
+{"type":"order.shipped","orderId":"A-1042","customerId":"C-1042"}
 ```
 
 1. I publish it to `customer-events`, playing the app.
 2. SNS sends it to my inbox and puts a copy in the `notifications` queue.
-3. The Lambda checks that `type`, `orderId` and `email` are there.
+3. The Lambda checks that `type`, `orderId` and `customerId` are there.
 4. It writes one log line. This stands in for sending an SMS or an internal message.
 5. The message is deleted from the queue.
 
 ## A bad event
 
-The same event without `email`:
+The same event without `customerId`:
 
 | About when | What happens |
 |---|---|
@@ -31,4 +31,4 @@ Most of the last wait is CloudWatch: SQS metrics reach it with a delay.
 
 Afterwards a person fixes the cause and redrives the message, or deletes it. When the DLQ is empty the alarm goes back to OK and emails again.
 
-The test events contain a made-up name and email. Real events should only carry IDs, see the limitations in the [README](../README.md).
+Historical tests used synthetic names and email addresses. Current demo events carry IDs only.

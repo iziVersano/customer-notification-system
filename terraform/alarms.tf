@@ -1,6 +1,51 @@
 # Operational alerts go to their own topic, apart from the customer events.
 resource "aws_sns_topic" "alerts" {
-  name = "alerts"
+  name              = "alerts"
+  kms_master_key_id = aws_kms_key.sns_alerts.arn
+}
+
+# Allow only this account's DLQ alarm to publish to the alerts topic.
+data "aws_iam_policy_document" "alerts" {
+  statement {
+    sid       = "AllowAccountOwner"
+    effect    = "Allow"
+    actions   = ["SNS:*"]
+    resources = [aws_sns_topic.alerts.arn]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${var.aws_account_id}:root"]
+    }
+  }
+
+  statement {
+    sid       = "AllowCloudWatchAlarmPublish"
+    effect    = "Allow"
+    actions   = ["SNS:Publish"]
+    resources = [aws_sns_topic.alerts.arn]
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudwatch.amazonaws.com"]
+    }
+
+    condition {
+      test     = "ArnEquals"
+      variable = "aws:SourceArn"
+      values   = ["arn:aws:cloudwatch:${var.aws_region}:${var.aws_account_id}:alarm:notifications-dlq-not-empty"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [var.aws_account_id]
+    }
+  }
+}
+
+resource "aws_sns_topic_policy" "alerts" {
+  arn    = aws_sns_topic.alerts.arn
+  policy = data.aws_iam_policy_document.alerts.json
 }
 
 resource "aws_sns_topic_subscription" "alerts_email" {

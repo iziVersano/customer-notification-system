@@ -4,13 +4,13 @@ import type { SQSBatchResponse, SQSHandler } from 'aws-lambda'
 interface CustomerEvent {
   type: string
   orderId: string
-  email: string
+  customerId: string
 }
 
 function parse(body: string): CustomerEvent {
   const event = JSON.parse(body) as Partial<CustomerEvent>
-  if (!event.type || !event.orderId || !event.email) {
-    throw new Error('event needs type, orderId and email')
+  if (!event.type || !event.orderId || !event.customerId) {
+    throw new Error('event needs type, orderId and customerId')
   }
   return event as CustomerEvent
 }
@@ -22,7 +22,7 @@ export const handler: SQSHandler = async (sqsEvent): Promise<SQSBatchResponse> =
   for (const record of sqsEvent.Records) {
     try {
       const event = parse(record.body)
-      console.log(JSON.stringify({ level: 'info', messageId: record.messageId, type: event.type, orderId: event.orderId, notify: event.email }))
+      console.log(JSON.stringify({ level: 'info', messageId: record.messageId, type: event.type, orderId: event.orderId, customerId: event.customerId }))
     } catch (error) {
       console.error(JSON.stringify({ level: 'error', messageId: record.messageId, error: String(error) }))
       batchItemFailures.push({ itemIdentifier: record.messageId })
